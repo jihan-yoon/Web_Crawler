@@ -1,16 +1,11 @@
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
+from urllib.request import quote
 import pymysql.cursors
 import os
 import argparse
 
 f = open('images_src.txt','w')
-
-ap = argparse.ArgumentParser()
-ap.add_argument("-sl", "--search_list", required=True,
-	help="path to file containing search_list")
-args = vars(ap.parse_args())
-rows = open(args["urls"]).read().strip().split("\n")
 
 # db connect
 conn = pymysql.connect(host='localhost',
@@ -39,10 +34,11 @@ with conn.cursor() as cursor:
 	cursor.execute(sql)
 conn.commit()
 
+search_name = '맨투맨' # 네이버 쇼핑에서 검색하여 웹 크롤링 할 제품 이름
+	
 for num in range(1,100) : # num : 네이버 쇼핑에서 제품 검색 후 페이지 번호
 	s = str(num) 
-	search_name = '맨투맨'
-	
+
 	url_search_name = quote(search_name)
 	str1 = 'https://search.shopping.naver.com/search/all.nhn?origQuery=' + url_search_name + '&pagingIndex='
 	str2 = '&pagingSize=80&viewType=list&sort=rel&frm=NVSHPAG&query=' + url_search_name # pagingSize : 한 페이지 제품 개수
@@ -50,18 +46,17 @@ for num in range(1,100) : # num : 네이버 쇼핑에서 제품 검색 후 페�
 	
 	html = urlopen(useurl)
 	soup = BeautifulSoup(html,"lxml")
-	eee = soup.find_all('img')
-	uuu = soup.find_all('div','img_area')
+	uuu = soup.find_all('div','img_area') # 검색한 페이지에서 이미지 영역 코드만 가져옴
 	
 	for u in uuu:
-		goods_str = u.findAll('a')
-		good_url = str(goods_str)[str(goods_str).find('href="')+6:str(goods_str).find('" target=')]
+		goods_str = u.findAll('a') # a 태그를 전부 가져옴
+		good_url = str(goods_str)[str(goods_str).find('href="')+6:str(goods_str).find('" target=')] # a 태그에 있는 href 를 얻어옴
 		utf8_good_url = good_url.encode('utf-8')
 		unicode_good_url = utf8_good_url.decode('utf-8')
 		
-		image_str = u.findAll('img')
+		image_str = u.findAll('img') # img 태그를 전부 가져옴
 		if str(image_str).find('" height') == -1 :
-			image_src = str(image_str)[str(image_str).find('data-original="')+15:str(image_str).find('" src')]
+			image_src = str(image_str)[str(image_str).find('data-original="')+15:str(image_str).find('" src')] # img 태그에 있는 data-original 를 얻어옴
 		else:
 			image_src = str(image_str)[str(image_str).find('data-original="')+15:str(image_str).find('" height')]
 		utf8_image_src = image_src.encode('utf-8')
@@ -72,8 +67,8 @@ for num in range(1,100) : # num : 네이버 쇼핑에서 제품 검색 후 페�
 		f.write('\n')
 			
 		with conn.cursor() as cursor:
-			sql = 'INSERT INTO mtm_data (goods_url, image_src) VALUES (%s, %s)'
 			# db 파일에 입력 (제품의 url 주소, 제품의 이미지 src)
+			sql = 'INSERT INTO mtm_data (goods_url, image_src) VALUES (%s, %s)'
 			cursor.execute(sql, (unicode_good_url, unicode_image_src))
 				
 		conn.commit()
