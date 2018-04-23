@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 from urllib.request import quote
+import time
 import pymysql.cursors
 import os
 import argparse
@@ -41,7 +42,7 @@ else :
 i = 0
 
 # 네이버 쇼핑에서 페이지를 넘겨가면서 크롤링 (num : 네이버 쇼핑에서 제품 검색 후 리스트 페이지 번호)
-for num in range(1,3) : 
+for num in range(1,13) : 
 	s = str(num) 
 
 	url_search_name = quote(search_name)
@@ -54,13 +55,17 @@ for num in range(1,3) :
 	 # 검색한 페이지에서 이미지 영역 코드만 가져옴
 	img_area_list = soup.find_all('div','img_area')
 	
-	for img_ara in img_area_list:
-		goods_str = img_ara.findAll('a') # a 태그를 전부 가져옴
+	for img_area in img_area_list:
+		goods_str = img_area.findAll('a') # a 태그를 전부 가져옴
 		good_url = str(goods_str)[str(goods_str).find('href="')+6:str(goods_str).find('" target=')] # a 태그에 있는 href 를 얻어옴
 		utf8_good_url = good_url.encode('utf-8')
 		unicode_good_url = utf8_good_url.decode('utf-8')
+
+		html = urlopen(unicode_good_url)
+		soup = BeautifulSoup(html,"lxml")
+		goods_url = soup.find_all('div','u_skip')
 		
-		image_str = img_ara.findAll('img') # img 태그를 전부 가져옴
+		image_str = img_area.findAll('img') # img 태그를 전부 가져옴
 		if str(image_str).find('" height') == -1 :
 			image_src = str(image_str)[str(image_str).find('data-original="')+15:str(image_str).find('" src')] # img 태그에 있는 data-original 를 얻어옴
 		else:
@@ -70,14 +75,16 @@ for num in range(1,3) :
 		
 		# 제품 이미지 다운로드를 위해 이미지 src 를 텍스트 파일로 출력
 		f.write(unicode_image_src)
-		f.write('\n')
+		f.write('\n')	
 		
 		# 이미 db에 존재하는 데이터는 저장하지 않기 위한 조건문(작성중)
 		if db_flags == 1 :
 			for row in rows :
-				print(row['goods_url'])
-				if unicode_good_url == row[str(row).find('http:'):str(image_str).find('https')-5] :
+				print(row[1])
+				time.sleep(3)
+				if unicode_good_url == row[1] :
 					i = i + 1;
+					print(i)
 
 		if i == 0 :
 			with conn.cursor() as cursor:
@@ -86,6 +93,7 @@ for num in range(1,3) :
 				cursor.execute(sql, (unicode_good_url, unicode_image_src))
 			conn.commit()
 
-	num = num + 1;
+
+	num = num + 1
 
 f.close
