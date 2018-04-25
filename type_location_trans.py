@@ -16,13 +16,12 @@ i = 1
 for line in lines :
 	if i >= 3 :
 		train_img_path_txt = str(line)[0:str(line).find('.jpg')+4]
-		train_img_path_txt_replaceAll= train_img_path_txt.replace("/","\\")
-		c.write(train_img_path_txt_replaceAll)
+		c.write(train_img_path_txt)
 		c.write('\n')
 	i = i + 1
 
 c.close()
-
+'''
 i = 1
 j = 1
 
@@ -83,3 +82,4 @@ for line in lines :
 	j = j + 1 
 
 f.close()
+'''
